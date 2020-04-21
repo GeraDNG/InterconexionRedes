@@ -1,0 +1,238 @@
+en
+conf t
+hostname S3
+no ip domain-lookup
+service password-encryption
+banner motd # Unauthorized Access is Prohibited! #
+enable secret class
+line con 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 15
+password cisco
+login
+end
+copy run start
+-----------------------------------------------------
+R1
+int s0/1/0
+ip address 172.16.1.1 255.255.0.0
+description DCE
+clock rate 128000
+no shut
+-----------------------------------------------------
+R2
+int s0/1/0
+description DTE
+ip address 172.16.1.2 255.255.0.0
+no shut
+exit
+int s0/1/1
+description DCE
+ip address 172.16.2.2 255.255.0.0
+clock rate 128000
+no shut
+exit
+int g0/0
+description Server
+ip address 209.165.200.232 255.255.255.0
+no shut
+exit
+int Loopback 0
+description Loopback0
+ip address 10.10.10.10 255.255.255.255
+exit
+-------------------------------------------------
+R3
+int s0/1/1
+description DTE
+ip address 172.16.2.1 255.255.0.0
+no shut
+exit
+int Loopback 4
+ip address 192.168.4.1 255.255.255.0
+exit
+int Loopback 5
+ip address 192.168.5.1 255.255.255.0
+exit
+int Loopback 6
+ip address 192.168.6.1 255.255.255.0
+exit
+----------------------------------------------------
+S1
+conf t
+vlan 21
+name Accounting
+exit
+int vlan 21
+no shut
+exit
+vlan 23
+name Engineering
+exit
+int vlan 23
+no shut
+exit
+vlan 99
+name Management
+exit
+int vlan 99
+ip address 192.168.99.2 255.255.255.248
+no shut
+exit
+ip default-gateway 192.168.99.1
+int fa0/3
+switchport mode access
+switchport access vlan 1
+switchport mode dynamic desirable
+switchport mode trunk
+switchport trunk native vlan 1
+switchport trunk allowed vlan 21,23,99
+no shut
+exit
+int fa0/5
+switchport mode access
+switchport access vlan 1
+switchport mode dynamic desirable
+switchport mode trunk
+switchport trunk native vlan 1
+switchport trunk allowed vlan 21,23,99
+no shut
+exit
+int fa0/6
+switchport mode access
+switchport access vlan 21
+no shut
+exit
+int range fa0/1-2
+switchport mode access
+shut
+exit
+int fa0/4
+switchport mode access
+shut
+exit
+int range fa0/7-24
+switchport mode access
+shut
+exit
+-------------------------------------------------------
+S3
+conf t
+vlan 21
+name Accounting
+exit
+int vlan 21
+no shut
+exit
+vlan 23
+name Engineering
+exit
+int vlan 23
+no shut
+exit
+vlan 99
+name Management
+exit
+int vlan 99
+ip address 192.168.99.3 255.255.255.248
+no shut
+exit
+ip default-gateway 192.168.99.1
+int fa0/3
+switchport mode access
+switchport access vlan 1
+switchport mode dynamic desirable
+switchport mode trunk
+switchport trunk native vlan 1
+switchport trunk allowed vlan 21,23,99
+no shut
+exit
+int range fa0/1-2
+switchport mode access
+shut
+exit
+int range fa0/4-17
+switchport mode access
+shut
+exit
+int range fa0/19-24
+switchport mode access
+shut
+exit
+int fa0/18
+switchport mode access
+switchport access vlan 23
+no shut
+exit
+--------------------------------------------
+R1
+conf t
+int g0/1.21
+description Accounting LAN
+encapsulation dot1Q 21
+ip address 192.168.21.1 255.255.255.0
+exit
+int g0/1.23
+description Engineering LAN
+encapsulation dot1Q 23
+ip address 192.168.23.1 255.255.255.0
+exit
+int g0/1.99
+description Management LAN
+encapsulation dot1Q 99
+ip address 192.168.99.1 255.255.255.0
+exit
+int g0/1
+no shut
+end
+---------------------------------------------
+R1
+conf t
+router rip
+version 2
+network 172.16.1.0
+network 192.168.99.0
+passive-interface g0/1
+no auto-summary 
+--------------------------------------------
+R2
+router rip
+version 2
+network 10.10.10.10
+network 172.16.1.0
+network 172.16.2.0
+passive-interface Loopback 0
+no auto-summary 
+---------------------------------------------
+R3
+router rip
+version 2
+network 172.16.2.0
+network 172.16.4.0
+network 172.16.5.0
+network 172.16.6.0
+passive-interface Loopback 4
+passive-interface Loopback 5
+passive-interface Loopback 6
+no auto-summary 
+-----------------------------------------------
+__________________________________________________
+R1
+conf t
+ip dhcp excluded-address 192.168.21.1 192.168.21.21
+ip dhcp excluded-address 192.168.23.1 192.168.23.21
+ip dhcp pool ACCT
+DNS-Server 10.10.10.10
+
+network
+default-router
+
+ip dhcp pool ENGNR
+DNS-Server 10.10.10.10
+
+network
+default-router
+---------------------------------------------------
